@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 	uchar* New;
 	pe_add=find_PE();
 	image=stretching(pe_add);
-	//New=compress(image);
+	New=compress(image);
 	//size=NewBuffer_size(image);
 	//file_out(New,size);
 	return 0;

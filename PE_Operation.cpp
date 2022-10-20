@@ -158,7 +158,7 @@ uchar Section_Copy(uchar* ch,uint pe,uint size,uint add_file,uint add_image)
 		fseek(fp,add_file,0);
 		for (uint i=0;i<size;i++)
 		{
-			fread(ch,1,1,fp);
+			*ch=fgetc(fp);
 			ch++;
 		}
 	}else return 0;
@@ -199,7 +199,7 @@ uchar* stretching(uint pe)
 			ImageBuffer=ImageBuffer-i;
 			for (uint k=0;k<NumberOfSections;k++)
 			{
-				Section_Copy(ImageBuffer,pe,ptrd(pe,k),sord(pe,k),va(pe,k));
+				Section_Copy(ImageBuffer,pe,sord(pe,k),ptrd(pe,k),va(pe,k));
 			}
 			fclose(fp);
 			return ImageBuffer;
