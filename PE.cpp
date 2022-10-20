@@ -7,7 +7,7 @@
 #include "function.h"
 int main(int argc, char* argv[])
 {
-	int flag;
+	/*int flag;
 	uchar* ch;
 	flag=find_PE();
 	ch=stretching(flag);
@@ -15,7 +15,8 @@ int main(int argc, char* argv[])
 	{
 		printf("%02x ",*ch);
 		ch++;
-	}
+	}*/
+
 	//ch1=store_PE(flag);
 	//printf("%X",*ch1);
 	//pri_jiebiao(flag);

@@ -9,6 +9,11 @@ FILE* file_open()
 	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1595756543VideoCap(2).exe","r");
 	return fp;
 }
+FILE* file_write()
+{
+	FILE* fn=fopen("C:\\Users\\HP\\Desktop\\123.txt","w");
+	return fn;
+}
 //******************************************************find the "PE"
 int find_PE()
 {
@@ -70,7 +75,7 @@ int pri_Section(int pe)
 {
 	FILE* fp;
 	fp=file_open();
-	uchar NumberOfSections,SizeOfOptionalHeader;
+	ushort NumberOfSections,SizeOfOptionalHeader;
 	if(fp!=NULL)
 	{
 		fseek(fp,pe+6,0);
@@ -89,11 +94,12 @@ int pri_Section(int pe)
 		fclose(fp);
 	}else return -1;
 }
-//****************************************************get PointerToRawData
+//****************************************************
+//****************************************************FileBuffer get PointerToRawData
 uint ptrd(int pe,char num)
 {
 	FILE* fp;
-	uchar SizeOfOptionalHeader;
+	ushort SizeOfOptionalHeader;
 	uint PointerToRawData;
 	fp=file_open();
 	if (fp!=NULL)
@@ -105,11 +111,11 @@ uint ptrd(int pe,char num)
 		return PointerToRawData;
 	}else return 0;
 }
-//***************************************************get VirtualAddress
+//***************************************************FileBuffer get VirtualAddress
 uint va(int pe,char num)
 {
 	FILE* fp;
-	uchar SizeOfOptionalHeader;
+	ushort SizeOfOptionalHeader;
 	uint VirtualAddress;
 	fp=file_open();
 	if (fp!=NULL)
@@ -121,11 +127,11 @@ uint va(int pe,char num)
 		return VirtualAddress;
 	}else return 0;
 }
-//****************************************************get SizeOfRawData
+//****************************************************FileBuffer get SizeOfRawData
 uint sord(int pe,char num)
 {
 	FILE* fp;
-	uchar SizeOfOptionalHeader;
+	ushort SizeOfOptionalHeader;
 	uint SizeOfRawData;
 	fp=file_open();
 	if (fp!=NULL)
@@ -137,18 +143,15 @@ uint sord(int pe,char num)
 		return SizeOfRawData;
 	}
 }
-//**************************************************copy section
-uchar Section_Copy(uchar* ch,int pe,uint size,uint add,char num)
+//**************************************************copy section(FileBuffer -> ImageBuffer)
+uchar Section_Copy(uchar* ch,int pe,uint size,uint add_file,uint add_image)
 {
-	uchar SizeOfOptionalHeader;
 	FILE* fp;
-	ch=ch+add;
+	ch=ch+add_image;
 	fp=file_open();
 	if (fp!=NULL)
 	{
-		fseek(fp,pe+20,0);
-		fread(&SizeOfOptionalHeader,2,1,fp);
-		fseek(fp,pe+24+SizeOfOptionalHeader+num*40,0);
+		fseek(fp,add_file,0);
 		for (uint i=0;i<size;i++)
 		{
 			*ch=fgetc(fp);
@@ -160,11 +163,11 @@ uchar Section_Copy(uchar* ch,int pe,uint size,uint add,char num)
 uchar* stretching(int pe)
 {
 	FILE* fp;
-	uchar* ch;
+	uchar* ImageBuffer;
 	fp=file_open();
 	if (fp!=NULL)
 	{
-		uchar NumberOfSections;
+		ushort NumberOfSections;
 		uint SizeOfHeaders,SizeOfImage;
 		fseek(fp,pe+6,0);
 		fread(&NumberOfSections,2,1,fp);
@@ -172,65 +175,88 @@ uchar* stretching(int pe)
 		fread(&SizeOfImage,4,1,fp);
 		fseek(fp,pe+84,0);
 		fread(&SizeOfHeaders,4,1,fp);
-		ch=(uchar*)malloc(SizeOfImage);
-		if (ch!=NULL)
+		ImageBuffer=(uchar*)malloc(SizeOfImage);
+		if (ImageBuffer!=NULL)
 		{
 			for (uint j=0;j<SizeOfImage;j++)
 			{
-				*ch=0;
-				ch++;
+				*ImageBuffer=0;
+				ImageBuffer++;
 			}
-			ch=ch-SizeOfImage;
+			ImageBuffer=ImageBuffer-SizeOfImage;
 			fseek(fp,0,0);
 			for (uint i=0;i<SizeOfHeaders;i++)
 			{
-				*ch=fgetc(fp);
-				ch++;
+				*ImageBuffer=fgetc(fp);
+				ImageBuffer++;
 			}
-			ch=ch-i;
+			ImageBuffer=ImageBuffer-i;
 			for (uint k=0;k<NumberOfSections;k++)
 			{
-				Section_Copy(ch,pe,sord(pe,k),va(pe,k),k);
+				Section_Copy(ImageBuffer,pe,ptrd(pe,k),sord(pe,k),va(pe,k));
 			}
 			fclose(fp);
-			return ch;
+			return ImageBuffer;
 		}else 
 		{
-			printf("Not enough space");
+			printf("Not enough space for ImageBuffer");
 			return NULL;
 		}
 	}else return NULL;
 }
-//*******************************************************file to internal storage
-uint compress(uchar* ch,int pe)
-{	
-	FILE* fp;
-	FILE* fpo;
-	fpo=file_open();
-	fp=fopen("C:\\Users\\HP\\Desktop\\test.txt","w");
-	if ((fp!=NULL) && (fpo!=NULL))
+//*******************************************************
+uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)//copy section(ImageBuffer -> NewBuffer)
+{
+	image=image+add_image;
+	New=New+add_new;
+	for (int i=0;i<size;i++)
 	{
-		int arr_data[10]=0;
-		int space=0;
-		uchar NumberOfSections;
-		uint SizeOfHeaders,SizeOfImage,PointerToRawData;
-		fseek(fp,pe+84,0);
-		fread(&SizeOfHeaders,4,1,fp);
-		fseek(fp,pe+6,0);
-		fread(&NumberOfSections,2,1,fp);
-		for (uint j=0;j<NumberOfSections,j++)
-		{
-			arr_data[j]=sord(pe,j);
-		}
-		space=space+SizeOfHeaders;
-		for (uint k=0;k<10;k++)
-		{
-			space=space+arr_data[k];
-		}
-		for (uint i=0;i<space;i++)
-		{
-		}
-	}else return 0;
+		*New=*image;
+		image++;
+		New++;
+	}
 	return 0;
+}
+//*******************************************************file to internal storage
+uchar* compress(uchar* ch)
+{	
+	uchar* NewBuffer;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	uint PE_add,PointerToRawData,SizeOfRawData,SizeOfHeaders,VirtualAddress;
+	PE_add=*(uint*)(ch+0x3c);
+	NumberOfSections=*(ushort*)(ch+PE_add+6);
+	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
+	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+NumberOfSections*40);
+	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+NumberOfSections*40);
+	SizeOfHeaders=*(uint*)(ch+PE_add+84);
+	NewBuffer=(uchar*)malloc(PointerToRawData+SizeOfRawData);
+	if (NewBuffer!=NULL)
+	{
+		for (int k=0;k<PointerToRawData+SizeOfRawData;k++)
+		{
+			*NewBuffer=0;
+			NewBuffer++;
+		}
+		NewBuffer=NewBuffer-PointerToRawData+SizeOfRawData;
+		for (int i=0;i<SizeOfHeaders;i++)
+		{
+			*NewBuffer=*ch;
+			NewBuffer++;
+			ch++;
+		}
+		ch=ch-SizeOfHeaders;
+		for (int j=0;j<NumberOfSections;j++)
+		{	
+			VirtualAddress=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+12+j*40);
+			PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+j*40);
+			SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+j*40);
+			Section_Copy_0(ch,NewBuffer,VirtualAddress,PointerToRawData,SizeOfRawData);
+		}
+		return NewBuffer;
+	}else 
+	{
+		printf("Not enough space for NewBuffer");
+		return NULL;
+	}
 }
 
