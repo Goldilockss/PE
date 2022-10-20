@@ -7,18 +7,13 @@
 #include "function.h"
 int main(int argc, char* argv[])
 {
-	/*int flag;
-	uchar* ch;
-	flag=find_PE();
-	ch=stretching(flag);
-	for (int i=0;i<1000;i++)
-	{
-		printf("%02x ",*ch);
-		ch++;
-	}*/
-
-	//ch1=store_PE(flag);
-	//printf("%X",*ch1);
-	//pri_jiebiao(flag);
+	uint pe_add,size;
+	uchar* image;
+	uchar* New;
+	pe_add=find_PE();
+	image=stretching(pe_add);
+	//New=compress(image);
+	//size=NewBuffer_size(image);
+	//file_out(New,size);
 	return 0;
 }

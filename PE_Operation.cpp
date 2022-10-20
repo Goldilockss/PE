@@ -6,23 +6,23 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1595756543VideoCap(2).exe","r");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\159.exe","r");
 	return fp;
 }
 FILE* file_write()
 {
-	FILE* fn=fopen("C:\\Users\\HP\\Desktop\\123.txt","w");
+	FILE* fn=fopen("C:\\Users\\HP\\Desktop\\123.exe","w");
 	return fn;
 }
 //******************************************************find the "PE"
-int find_PE()
+uint find_PE()
 {
 	FILE* fp;
 	fp=file_open();
 	if (fp!=NULL)
 	{
-		char a,b;
-		int pe;
+		uchar a,b;
+		uint pe;
 		a=fgetc(fp);
 		b=fgetc(fp);
 		if ((a=='M') && (b=='Z'))
@@ -40,18 +40,19 @@ int find_PE()
 		}else
 		{
 			printf("Not a .exe");
+			return 0;
 		}
-	}else return -1;
+	}else return 0;
 }
 //*****************************************************save standard PE head
-char* store_PE(int pe)
+uchar* store_PE(uint pe)
 {
-	char* ch;
+	uchar* ch;
 	FILE* fp;
 	fp=file_open();
 	if (fp!=NULL)
 	{
-		ch=(char*)malloc(28);
+		ch=(uchar*)malloc(28);
 		if (ch!=NULL)
 		{
 			fseek(fp,pe+4,0);
@@ -71,7 +72,7 @@ char* store_PE(int pe)
 	}else return NULL;
 }
 //*****************************************************print section table
-int pri_Section(int pe)
+uint pri_Section(uint pe)
 {
 	FILE* fp;
 	fp=file_open();
@@ -92,11 +93,11 @@ int pri_Section(int pe)
 			printf("\n");
 		}
 		fclose(fp);
-	}else return -1;
+	}else return 0;
 }
 //****************************************************
 //****************************************************FileBuffer get PointerToRawData
-uint ptrd(int pe,char num)
+uint ptrd(uint pe,char num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
@@ -108,11 +109,12 @@ uint ptrd(int pe,char num)
 		fread(&SizeOfOptionalHeader,2,1,fp);
 		fseek(fp,pe+24+SizeOfOptionalHeader+20+num*40,0);
 		fread(&PointerToRawData,4,1,fp);
-		return PointerToRawData;
 	}else return 0;
+	fclose(fp);
+	return PointerToRawData;
 }
 //***************************************************FileBuffer get VirtualAddress
-uint va(int pe,char num)
+uint va(uint pe,char num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
@@ -124,11 +126,12 @@ uint va(int pe,char num)
 		fread(&SizeOfOptionalHeader,2,1,fp);
 		fseek(fp,pe+24+SizeOfOptionalHeader+12+num*40,0);
 		fread(&VirtualAddress,4,1,fp);
-		return VirtualAddress;
 	}else return 0;
+	fclose(fp);
+	return VirtualAddress;
 }
 //****************************************************FileBuffer get SizeOfRawData
-uint sord(int pe,char num)
+uint sord(uint pe,char num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
@@ -140,11 +143,12 @@ uint sord(int pe,char num)
 		fread(&SizeOfOptionalHeader,2,1,fp);
 		fseek(fp,pe+24+SizeOfOptionalHeader+16+num*40,0);
 		fread(&SizeOfRawData,4,1,fp);
-		return SizeOfRawData;
-	}
+	}else return 0;
+	fclose(fp);
+	return SizeOfRawData;
 }
 //**************************************************copy section(FileBuffer -> ImageBuffer)
-uchar Section_Copy(uchar* ch,int pe,uint size,uint add_file,uint add_image)
+uchar Section_Copy(uchar* ch,uint pe,uint size,uint add_file,uint add_image)
 {
 	FILE* fp;
 	ch=ch+add_image;
@@ -154,13 +158,15 @@ uchar Section_Copy(uchar* ch,int pe,uint size,uint add_file,uint add_image)
 		fseek(fp,add_file,0);
 		for (uint i=0;i<size;i++)
 		{
-			*ch=fgetc(fp);
+			fread(ch,1,1,fp);
 			ch++;
 		}
 	}else return 0;
+	fclose(fp);
+	return 1;
 }
 //*****************************************************copy Header insert section
-uchar* stretching(int pe)
+uchar* stretching(uint pe)
 {
 	FILE* fp;
 	uchar* ImageBuffer;
@@ -200,6 +206,7 @@ uchar* stretching(int pe)
 		}else 
 		{
 			printf("Not enough space for ImageBuffer");
+			fclose(fp);
 			return NULL;
 		}
 	}else return NULL;
@@ -217,6 +224,28 @@ uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size
 	}
 	return 0;
 }
+//*******************************************************file out put
+uchar file_out(uchar* ch,uint size)
+{
+	FILE* fo;
+	uchar data;
+	fo=file_write();
+	if (fo!=NULL)
+	{
+		for (int i=0;i<size;i++)
+		{
+			data=*ch;
+			fputc(data,fo);
+			ch++;
+		}
+		fclose(fo);
+		return 1;
+	}else
+	{
+		printf("New file creation failed");
+		return 0;
+	}
+}
 //*******************************************************file to internal storage
 uchar* compress(uchar* ch)
 {	
@@ -226,8 +255,8 @@ uchar* compress(uchar* ch)
 	PE_add=*(uint*)(ch+0x3c);
 	NumberOfSections=*(ushort*)(ch+PE_add+6);
 	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
-	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+NumberOfSections*40);
-	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+NumberOfSections*40);
+	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+(NumberOfSections-1)*40);
+	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
 	SizeOfHeaders=*(uint*)(ch+PE_add+84);
 	NewBuffer=(uchar*)malloc(PointerToRawData+SizeOfRawData);
 	if (NewBuffer!=NULL)
@@ -258,5 +287,17 @@ uchar* compress(uchar* ch)
 		printf("Not enough space for NewBuffer");
 		return NULL;
 	}
+}
+//*************************************************size of NewBuffer
+uint NewBuffer_size(uchar* ch)
+{
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	uint PE_add,PointerToRawData,SizeOfRawData,SizeOfHeaders,VirtualAddress;
+	PE_add=*(uint*)(ch+0x3c);
+	NumberOfSections=*(ushort*)(ch+PE_add+6);
+	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
+	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+(NumberOfSections-1)*40);
+	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
+	return PointerToRawData+SizeOfRawData;
 }
 
