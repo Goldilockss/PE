@@ -6,12 +6,12 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\159.exe","r");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\159.exe","rb");
 	return fp;
 }
 FILE* file_write()
 {
-	FILE* fn=fopen("C:\\Users\\HP\\Desktop\\123.exe","w");
+	FILE* fn=fopen("C:\\Users\\HP\\Desktop\\123.exe","wb");
 	return fn;
 }
 //******************************************************find the "PE"
@@ -193,7 +193,7 @@ uchar* stretching(uint pe)
 			fseek(fp,0,0);
 			for (uint i=0;i<SizeOfHeaders;i++)
 			{
-				*ImageBuffer=fgetc(fp);
+				fread(ImageBuffer,1,1,fp);
 				ImageBuffer++;
 			}
 			ImageBuffer=ImageBuffer-i;
@@ -266,7 +266,7 @@ uchar* compress(uchar* ch)
 			*NewBuffer=0;
 			NewBuffer++;
 		}
-		NewBuffer=NewBuffer-PointerToRawData+SizeOfRawData;
+		NewBuffer=NewBuffer-(PointerToRawData+SizeOfRawData);
 		for (int i=0;i<SizeOfHeaders;i++)
 		{
 			*NewBuffer=*ch;
@@ -274,6 +274,7 @@ uchar* compress(uchar* ch)
 			ch++;
 		}
 		ch=ch-SizeOfHeaders;
+		NewBuffer=NewBuffer-SizeOfHeaders;
 		for (int j=0;j<NumberOfSections;j++)
 		{	
 			VirtualAddress=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+12+j*40);
