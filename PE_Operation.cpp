@@ -301,4 +301,65 @@ uint NewBuffer_size(uchar* ch)
 	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
 	return PointerToRawData+SizeOfRawData;
 }
+//***********************************************get SizeOfImage
+uint Image_size(uint pe)
+{
+	FILE* fp;
+	uint SizeOfImage;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+80,0);
+		fread(&SizeOfImage,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return SizeOfImage;
+}
+//***********************************************get AddressOfEntryPoint
+uint EntryPoint_add(uint pe)
+{
+	FILE* fp;
+	uint AddressOfEntryPoint;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+24+16,0);
+		fread(&AddressOfEntryPoint,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return AddressOfEntryPoint;
+}
+//************************************************judge whether there is enough space to add a section
+uchar space_enough()
+{
+	FILE* fp;
+	uint pe,PointerToRawData_first,SizeOfHeaders;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+20,0);
+		fread(&SizeOfOptionalHeader,2,1,fp);
+		fseek(fp,pe+6,0);
+		fread(&NumberOfSections,2,1,fp);
+		fseek(fp,pe+84,0);
+		fread(&SizeOfHeaders,4,1,fp);
+		PointerToRawData_first=ptrd(pe,0);
+		if ((PointerToRawData_first-(pe+24+SizeOfOptionalHeader+40*NumberOfSections)) >= 80)
+		{
+			fclose(fp);
+			return 1;
+		}else if ((SizeOfHeaders-60-24-SizeOfOptionalHeader-40*NumberOfSections) >= 80)
+		{
+			fclose(fp);
+			return 2;
+		}else
+		{
+			printf("Not enough space to add a section");
+			fclose(fp);
+			return 0;
+		}
+	}else return 0;
+}
 

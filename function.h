@@ -29,5 +29,8 @@ uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size
 uchar file_out(uchar* ch,uint size);
 uchar* compress(uchar* ch);
 uint NewBuffer_size(uchar* ch);
+uint Image_size(uint pe);
+uint EntryPoint_add(uint pe);
+uchar space_enough();
 #endif
  
