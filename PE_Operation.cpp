@@ -6,7 +6,7 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\159.exe","rb");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1.exe","rb+");
 	return fp;
 }
 FILE* file_write()
@@ -165,65 +165,6 @@ uchar Section_Copy(uchar* ch,uint pe,uint size,uint add_file,uint add_image)
 	fclose(fp);
 	return 1;
 }
-//*****************************************************FileBuffer -> ImageBuffer
-uchar* stretching(uint pe)
-{
-	FILE* fp;
-	uchar* ImageBuffer;
-	fp=file_open();
-	if (fp!=NULL)
-	{
-		ushort NumberOfSections;
-		uint SizeOfHeaders,SizeOfImage;
-		fseek(fp,pe+6,0);
-		fread(&NumberOfSections,2,1,fp);
-		fseek(fp,pe+80,0);
-		fread(&SizeOfImage,4,1,fp);
-		fseek(fp,pe+84,0);
-		fread(&SizeOfHeaders,4,1,fp);
-		ImageBuffer=(uchar*)malloc(SizeOfImage);
-		if (ImageBuffer!=NULL)
-		{
-			for (uint j=0;j<SizeOfImage;j++)
-			{
-				*ImageBuffer=0;
-				ImageBuffer++;
-			}
-			ImageBuffer=ImageBuffer-SizeOfImage;
-			fseek(fp,0,0);
-			for (uint i=0;i<SizeOfHeaders;i++)
-			{
-				fread(ImageBuffer,1,1,fp);
-				ImageBuffer++;
-			}
-			ImageBuffer=ImageBuffer-i;
-			for (uint k=0;k<NumberOfSections;k++)
-			{
-				Section_Copy(ImageBuffer,pe,sord(pe,k),ptrd(pe,k),va(pe,k));
-			}
-			fclose(fp);
-			return ImageBuffer;
-		}else 
-		{
-			printf("Not enough space for ImageBuffer");
-			fclose(fp);
-			return NULL;
-		}
-	}else return NULL;
-}
-//*******************************************************
-uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)//copy section(ImageBuffer -> NewBuffer)
-{
-	image=image+add_image;
-	New=New+add_new;
-	for (int i=0;i<size;i++)
-	{
-		*New=*image;
-		image++;
-		New++;
-	}
-	return 0;
-}
 //*******************************************************file out put
 uchar file_out(uchar* ch,uint size)
 {
@@ -246,50 +187,7 @@ uchar file_out(uchar* ch,uint size)
 		return 0;
 	}
 }
-//*******************************************************ImageBuffer -> NewBuffer
-uchar* compress(uchar* ch)
-{	
-	uchar* NewBuffer;
-	ushort NumberOfSections,SizeOfOptionalHeader;
-	uint PE_add,PointerToRawData,SizeOfRawData,SizeOfHeaders,VirtualAddress;
-	PE_add=*(uint*)(ch+0x3c);
-	NumberOfSections=*(ushort*)(ch+PE_add+6);
-	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
-	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+(NumberOfSections-1)*40);
-	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
-	SizeOfHeaders=*(uint*)(ch+PE_add+84);
-	NewBuffer=(uchar*)malloc(PointerToRawData+SizeOfRawData);
-	if (NewBuffer!=NULL)
-	{
-		for (int k=0;k<PointerToRawData+SizeOfRawData;k++)
-		{
-			*NewBuffer=0;
-			NewBuffer++;
-		}
-		NewBuffer=NewBuffer-(PointerToRawData+SizeOfRawData);
-		for (int i=0;i<SizeOfHeaders;i++)
-		{
-			*NewBuffer=*ch;
-			NewBuffer++;
-			ch++;
-		}
-		ch=ch-SizeOfHeaders;
-		NewBuffer=NewBuffer-SizeOfHeaders;
-		for (int j=0;j<NumberOfSections;j++)
-		{	
-			VirtualAddress=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+12+j*40);
-			PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+j*40);
-			SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+j*40);
-			Section_Copy_0(ch,NewBuffer,VirtualAddress,PointerToRawData,SizeOfRawData);
-		}
-		return NewBuffer;
-	}else 
-	{
-		printf("Not enough space for NewBuffer");
-		return NULL;
-	}
-}
-//*************************************************size of NewBuffer
+//*************************************************size of NewBuffer(operation in ImageBuffer)
 uint NewBuffer_size(uchar* ch)
 {
 	ushort NumberOfSections,SizeOfOptionalHeader;
@@ -302,11 +200,12 @@ uint NewBuffer_size(uchar* ch)
 	return PointerToRawData+SizeOfRawData;
 }
 //***********************************************get SizeOfImage
-uint Image_size(uint pe)
+uint Image_size()
 {
 	FILE* fp;
-	uint SizeOfImage;
+	uint pe,SizeOfImage;
 	fp=file_open();
+	pe=find_PE();
 	if (fp!=NULL)
 	{
 		fseek(fp,pe+80,0);
@@ -328,39 +227,6 @@ uint EntryPoint_add(uint pe)
 	}else return 0;
 	fclose(fp);
 	return AddressOfEntryPoint;
-}
-//************************************************judge whether there is enough space to add a section
-uchar space_enough()
-{
-	FILE* fp;
-	uint pe,PointerToRawData_first,SizeOfHeaders;
-	ushort NumberOfSections,SizeOfOptionalHeader;
-	pe=find_PE();
-	fp=file_open();
-	if (fp!=NULL)
-	{
-		fseek(fp,pe+20,0);
-		fread(&SizeOfOptionalHeader,2,1,fp);
-		fseek(fp,pe+6,0);
-		fread(&NumberOfSections,2,1,fp);
-		fseek(fp,pe+84,0);
-		fread(&SizeOfHeaders,4,1,fp);
-		PointerToRawData_first=ptrd(pe,0);
-		if ((PointerToRawData_first-(pe+24+SizeOfOptionalHeader+40*NumberOfSections)) >= 80)
-		{
-			fclose(fp);
-			return 1;
-		}else if ((SizeOfHeaders-60-24-SizeOfOptionalHeader-40*NumberOfSections) >= 80)
-		{
-			fclose(fp);
-			return 2;
-		}else
-		{
-			printf("Not enough space to add a section");
-			fclose(fp);
-			return 0;
-		}
-	}else return 0;
 }
 //***************************************************get SizeOfOptionalHeader
 ushort optional_size()
@@ -409,18 +275,215 @@ ushort section_num()
 	fclose(fp);
 	return NumberOfSections;
 }
+//*****************************************************FileBuffer -> ImageBuffer
+uchar* stretching(uint pe)
+{
+	FILE* fp;
+	uchar* ImageBuffer;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		ushort NumberOfSections;
+		uint SizeOfHeaders,SizeOfImage;
+		SizeOfImage=Image_size();
+		NumberOfSections=section_num();
+		SizeOfHeaders=header_size();
+		ImageBuffer=(uchar*)malloc(SizeOfImage);
+		if (ImageBuffer!=NULL)
+		{
+			for (uint j=0;j<SizeOfImage;j++)
+			{
+				*ImageBuffer=0;
+				ImageBuffer++;
+			}
+			ImageBuffer=ImageBuffer-SizeOfImage;
+			fseek(fp,0,0);
+			for (uint i=0;i<SizeOfHeaders;i++)
+			{
+				fread(ImageBuffer,1,1,fp);
+				ImageBuffer++;
+			}
+			ImageBuffer=ImageBuffer-i;
+			for (uint k=0;k<NumberOfSections;k++)
+			{
+				Section_Copy(ImageBuffer,pe,sord(pe,k),ptrd(pe,k),va(pe,k));
+			}
+			fclose(fp);
+			return ImageBuffer;
+		}else 
+		{
+			printf("Not enough space for ImageBuffer");
+			fclose(fp);
+			return NULL;
+		}
+	}else return NULL;
+}
+//*******************************************************ImageBuffer -> NewBuffer
+uchar* compress(uchar* ch)
+{	
+	uchar* NewBuffer;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	uint PE_add,PointerToRawData,SizeOfRawData,SizeOfHeaders,VirtualAddress;
+	PE_add=*(uint*)(ch+0x3c);
+	NumberOfSections=*(ushort*)(ch+PE_add+6);
+	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
+	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+(NumberOfSections-1)*40);
+	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
+	SizeOfHeaders=*(uint*)(ch+PE_add+84);
+	NewBuffer=(uchar*)malloc(PointerToRawData+SizeOfRawData);
+	if (NewBuffer!=NULL)
+	{
+		for (int k=0;k<PointerToRawData+SizeOfRawData;k++)
+		{
+			*NewBuffer=0;
+			NewBuffer++;
+		}
+		NewBuffer=NewBuffer-(PointerToRawData+SizeOfRawData);
+		for (int i=0;i<SizeOfHeaders;i++)
+		{
+			*NewBuffer=*ch;
+			NewBuffer++;
+			ch++;
+		}
+		ch=ch-SizeOfHeaders;
+		NewBuffer=NewBuffer-SizeOfHeaders;
+		for (int j=0;j<NumberOfSections;j++)
+		{	
+			VirtualAddress=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+12+j*40);
+			PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+j*40);
+			SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+j*40);
+			Section_Copy_0(ch,NewBuffer,VirtualAddress,PointerToRawData,SizeOfRawData);
+		}
+		return NewBuffer;
+	}else 
+	{
+		printf("Not enough space for NewBuffer");
+		return NULL;
+	}
+}
+//*******************************************************
+uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)//copy section(ImageBuffer -> NewBuffer)
+{
+	image=image+add_image;
+	New=New+add_new;
+	for (int i=0;i<size;i++)
+	{
+		*New=*image;
+		image++;
+		New++;
+	}
+	return 0;
+}
+//************************************************judge whether there is enough space to add a section
+uchar space_enough()
+{
+	FILE* fp;
+	uint pe,PointerToRawData_first,SizeOfHeaders;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		SizeOfOptionalHeader=optional_size();
+		NumberOfSections=section_num();
+		SizeOfHeaders=header_size();
+		PointerToRawData_first=ptrd(pe,0);
+		if ((PointerToRawData_first-(pe+24+SizeOfOptionalHeader+40*NumberOfSections)) >= 80)
+		{
+			fclose(fp);
+			return 1;
+		}else if ((SizeOfHeaders-60-24-SizeOfOptionalHeader-40*NumberOfSections) >= 80)
+		{
+			fclose(fp);
+			return 2;
+		}else
+		{
+			printf("Not enough space to add a section");
+			fclose(fp);
+			return 0;
+		}
+	}else return 0;
+}
 //*************************************************write a section table
 uchar sectiontable_write()
 {
 	FILE* fp;
 	ushort NumberOfSections,SizeOfOptionalHeader;
 	uint pe;
+	uchar section_new[40]={0x2e,0x74,0x65,0x78,0x74,0x00,0x00,0x00,0x40,0x82,
+					0x02,0x00,0x00,0x10,0x00,0x00,0x00,0x90,0x02,0x00,
+					0x00,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x60};
 	fp=file_open();
-	if (space_enough())
+	if (fp!=NULL)
 	{
-		pe=find_PE();
-		NumberOfSections=section_num();
-		SizeOfOptionalHeader=optional_size();
-		fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections,0);
+		if (space_enough())
+		{
+			pe=find_PE();
+			NumberOfSections=section_num();
+			SizeOfOptionalHeader=optional_size();
+			fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections,0);
+			for (uint i=0;i<40;i++)
+			{
+				fputc(section_new[i],fp);
+			}
+			for (uint j=0;j<40;j++)
+			{
+				fputc(0,fp);
+			}	
+		}else return 0;
+		fclose(fp);
+		return 1;
+	}else return 0;
+}
+//*************************************************modify the NumberOfSections(+1)
+uchar modify_section_num()
+{
+	FILE* fp;
+	ushort NumberOfSections_new;
+	NumberOfSections_new=section_num()+1;
+	uint pe;
+	fp=file_open();
+	pe=find_PE();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+6,0);
+		fwrite(&NumberOfSections_new,2,1,fp);
+	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//*************************************************modify the SizeOfImage(+1000)
+uchar modify_image_size()
+{
+	FILE* fp;
+	uint pe,SizeOfImage_new;
+	SizeOfImage_new=Image_size()+0x1000;
+	fp=file_open();
+	pe=find_PE();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+80,0);
+		fwrite(&SizeOfImage_new,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//***********************************************write a section
+uchar section_write()
+{
+	FILE* fp;
+	uint pe;
+	uchar code[4096]={0x00};
+	fp=file_open();
+	pe=find_PE();
+	if (fp!=NULL)
+	{
+		fseek(fp,0,2);
+		fseek(fp,1,1);
+		for (uint i=0;i<4096;i++)
+		{
+			fputc(code[i],fp);
+		}
 	}else return 0;
 }

@@ -14,6 +14,10 @@ int main(int argc, char* argv[])
 	New=compress(image);
 	size=NewBuffer_size(image);
 	file_out(New,size);*/
-	space_enough();
+	//space_enough();
+	//sectiontable_write();
+	//modify_section_num();
+	//modify_image_size();
+	section_write();
 	return 0;
 }

@@ -32,5 +32,9 @@ uint NewBuffer_size(uchar* ch);
 uint Image_size(uint pe);
 uint EntryPoint_add(uint pe);
 uchar space_enough();
+uchar sectiontable_write();
+uchar modify_section_num();
+uchar modify_image_size();
+uchar section_write();
 #endif
  
