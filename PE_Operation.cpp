@@ -165,7 +165,7 @@ uchar Section_Copy(uchar* ch,uint pe,uint size,uint add_file,uint add_image)
 	fclose(fp);
 	return 1;
 }
-//*****************************************************copy Header insert section
+//*****************************************************FileBuffer -> ImageBuffer
 uchar* stretching(uint pe)
 {
 	FILE* fp;
@@ -246,7 +246,7 @@ uchar file_out(uchar* ch,uint size)
 		return 0;
 	}
 }
-//*******************************************************file to internal storage
+//*******************************************************ImageBuffer -> NewBuffer
 uchar* compress(uchar* ch)
 {	
 	uchar* NewBuffer;
@@ -362,4 +362,65 @@ uchar space_enough()
 		}
 	}else return 0;
 }
-
+//***************************************************get SizeOfOptionalHeader
+ushort optional_size()
+{
+	FILE* fp;
+	ushort SizeOfOptionalHeader;
+	uint pe;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+20,0);
+		fread(&SizeOfOptionalHeader,2,1,fp);
+	}else return 0;
+	fclose(fp);
+	return SizeOfOptionalHeader;
+}
+//****************************************************get SizeOfHeaders
+uint header_size()
+{
+	FILE* fp;
+	uint pe,SizeOfHeaders;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+84,0);
+		fread(&SizeOfHeaders,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return SizeOfHeaders;
+}
+//***************************************************get NumberOfSections
+ushort section_num()
+{
+	FILE* fp;
+	ushort NumberOfSections;
+	uint pe;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+6,0);
+		fread(&NumberOfSections,2,1,fp);
+	}else return 0;
+	fclose(fp);
+	return NumberOfSections;
+}
+//*************************************************write a section table
+uchar sectiontable_write()
+{
+	FILE* fp;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	uint pe;
+	fp=file_open();
+	if (space_enough())
+	{
+		pe=find_PE();
+		NumberOfSections=section_num();
+		SizeOfOptionalHeader=optional_size();
+		fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections,0);
+	}else return 0;
+}
