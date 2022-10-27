@@ -96,6 +96,23 @@ uint pri_Section(uint pe)
 	}else return 0;
 }
 //****************************************************
+//****************************************************FileBuffer get VirtualSize
+uint vs(uint pe,char num)
+{
+	FILE* fp;
+	ushort SizeOfOptionalHeader;
+	uint VirtualSize;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+20,0);
+		fread(&SizeOfOptionalHeader,2,1,fp);
+		fseek(fp,pe+24+SizeOfOptionalHeader+8+num*40,0);
+		fread(&VirtualSize,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return VirtualSize;
+}
 //****************************************************FileBuffer get PointerToRawData
 uint ptrd(uint pe,char num)
 {
@@ -410,9 +427,9 @@ uchar sectiontable_write()
 	FILE* fp;
 	ushort NumberOfSections,SizeOfOptionalHeader;
 	uint pe;
-	uchar section_new[40]={0x2e,0x74,0x65,0x78,0x74,0x00,0x00,0x00,0x40,0x82,
-					0x02,0x00,0x00,0x10,0x00,0x00,0x00,0x90,0x02,0x00,
-					0x00,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	uchar section_new[40]={0x2e,0x74,0x65,0x78,0x74,0x00,0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+					0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 					0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x60};
 	fp=file_open();
 	if (fp!=NULL)
@@ -430,7 +447,7 @@ uchar sectiontable_write()
 			for (uint j=0;j<40;j++)
 			{
 				fputc(0,fp);
-			}	
+			}
 		}else return 0;
 		fclose(fp);
 		return 1;
@@ -486,4 +503,37 @@ uchar section_write()
 			fputc(code[i],fp);
 		}
 	}else return 0;
+}
+//***********************************************correcting section table properties
+uchar sectiontable_correct()
+{
+	FILE* fp;
+	ushort NumberOfSections,SizeOfOptionalHeader;
+	uint pe,VirtualSize,VirtualAddress,SizeOfRawData,VirtualAddress_new,PointerToRawData,PointerToRawData_new;
+	uint VirtualSize0,SizeOfRawData0;
+	VirtualSize0=0x1000;
+	SizeOfRawData0=0x1000;
+	pe=find_PE();
+	NumberOfSections=section_num();
+	VirtualSize=vs(pe,NumberOfSections-1);
+	VirtualAddress=va(pe,NumberOfSections-1);
+	SizeOfRawData=sord(pe,NumberOfSections-1);
+	PointerToRawData=ptrd(pe,NumberOfSections-1);
+	SizeOfOptionalHeader=optional_size();
+	if (VirtualSize>=SizeOfRawData)
+	{
+		VirtualAddress_new=VirtualAddress+VirtualSize;
+	}else VirtualAddress_new=VirtualAddress+SizeOfRawData;
+	PointerToRawData_new=PointerToRawData+SizeOfRawData;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections+8,0);
+		fwrite(&VirtualSize0,4,1,fp);
+		fwrite(&VirtualAddress_new,4,1,fp);
+		fwrite(&SizeOfRawData0,4,1,fp);
+		fwrite(&PointerToRawData_new,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return 1;
 }

@@ -18,6 +18,9 @@ int main(int argc, char* argv[])
 	//sectiontable_write();
 	//modify_section_num();
 	//modify_image_size();
-	section_write();
+	//section_write();
+	sectiontable_write();
+	sectiontable_correct();
+	modify_section_num();
 	return 0;
 }
