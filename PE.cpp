@@ -15,12 +15,11 @@ int main(int argc, char* argv[])
 	size=NewBuffer_size(image);
 	file_out(New,size);*/
 	//space_enough();
-	//sectiontable_write();
-	//modify_section_num();
 	//modify_image_size();
 	//section_write();
-	sectiontable_write();
-	sectiontable_correct();
-	modify_section_num();
+	//sectiontable_write();
+	//sectiontable_correct();
+	//modify_section_num();
+	sectiontable_merge();
 	return 0;
 }

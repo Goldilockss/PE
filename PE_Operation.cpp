@@ -378,8 +378,8 @@ uchar* compress(uchar* ch)
 		return NULL;
 	}
 }
-//*******************************************************
-uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)//copy section(ImageBuffer -> NewBuffer)
+//*******************************************************//copy section(ImageBuffer -> NewBuffer)
+uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)
 {
 	image=image+add_image;
 	New=New+add_new;
@@ -533,6 +533,31 @@ uchar sectiontable_correct()
 		fwrite(&VirtualAddress_new,4,1,fp);
 		fwrite(&SizeOfRawData0,4,1,fp);
 		fwrite(&PointerToRawData_new,4,1,fp);
+	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//******************************************************section table merge
+uchar sectiontable_merge()
+{
+	FILE* fp;
+	ushort SizeOfOptionalHeader,NumberOfSections;
+	uint pe,SizeOfImage,VirtualAddress,VirtualSize,SizeOfRawData;
+	pe=find_PE();
+	SizeOfImage=Image_size();
+	VirtualAddress=va(pe,0);
+	VirtualSize=SizeOfRawData=SizeOfImage-VirtualAddress;
+	SizeOfOptionalHeader=optional_size();
+	NumberOfSections=1;
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+6,0);
+		fwrite(&NumberOfSections,2,1,fp);
+		fseek(fp,pe+24+SizeOfOptionalHeader+8,0);
+		fwrite(&VirtualSize,4,1,fp);
+		fseek(fp,pe+24+SizeOfOptionalHeader+16,0);
+		fwrite(&SizeOfRawData,4,1,fp);
 	}else return 0;
 	fclose(fp);
 	return 1;
