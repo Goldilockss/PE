@@ -96,6 +96,7 @@ uint pri_Section(uint pe)
 	}else return 0;
 }
 //****************************************************
+
 //****************************************************FileBuffer get VirtualSize
 uint vs(uint pe,char num)
 {
@@ -293,10 +294,12 @@ ushort section_num()
 	return NumberOfSections;
 }
 //*****************************************************FileBuffer -> ImageBuffer
-uchar* stretching(uint pe)
+uchar* stretching()
 {
 	FILE* fp;
 	uchar* ImageBuffer;
+	uint pe;
+	pe=find_PE();
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -537,28 +540,41 @@ uchar sectiontable_correct()
 	fclose(fp);
 	return 1;
 }
-//******************************************************section table merge
-uchar sectiontable_merge()
+//******************************************************section merge parameter modification
+uchar* sectionmerge_modify(uchar* ch)
 {
-	FILE* fp;
-	ushort SizeOfOptionalHeader,NumberOfSections;
-	uint pe,SizeOfImage,VirtualAddress,VirtualSize,SizeOfRawData;
-	pe=find_PE();
-	SizeOfImage=Image_size();
-	VirtualAddress=va(pe,0);
-	VirtualSize=SizeOfRawData=SizeOfImage-VirtualAddress;
-	SizeOfOptionalHeader=optional_size();
-	NumberOfSections=1;
-	fp=file_open();
-	if (fp!=NULL)
+	if (ch!=NULL)
 	{
-		fseek(fp,pe+6,0);
-		fwrite(&NumberOfSections,2,1,fp);
-		fseek(fp,pe+24+SizeOfOptionalHeader+8,0);
-		fwrite(&VirtualSize,4,1,fp);
-		fseek(fp,pe+24+SizeOfOptionalHeader+16,0);
-		fwrite(&SizeOfRawData,4,1,fp);
-	}else return 0;
-	fclose(fp);
+		ushort SizeOfOptionalHeader,NumberOfSections;
+		uint pe,SizeOfImage,VirtualAddress,VirtualSize,SizeOfRawData,Characteristics,Characteristics_new;	
+		pe=*(uint*)(ch+0x3c);
+		NumberOfSections=*(ushort*)(ch+pe+6);
+		SizeOfOptionalHeader=*(ushort*)(ch+pe+20);
+		Characteristics_new=*(uint*)(ch+pe+24+SizeOfOptionalHeader+36);
+		for (int i=0;i<NumberOfSections;i++)
+		{
+			Characteristics=*(uint*)(ch+pe+24+SizeOfOptionalHeader+36+i*40);
+			Characteristics_new=Characteristics_new|Characteristics;
+		}
+		NumberOfSections=1;
+		*(ushort*)(ch+pe+6)=NumberOfSections;
+		VirtualAddress=*(uint*)(ch+pe+24+SizeOfOptionalHeader+12);
+		SizeOfImage=*(uint*)(ch+pe+80);
+		VirtualSize=SizeOfRawData=SizeOfImage-VirtualAddress;
+		*(uint*)(ch+pe+24+SizeOfOptionalHeader+8)=VirtualSize;
+		*(uint*)(ch+pe+24+SizeOfOptionalHeader+16)=SizeOfRawData;
+		*(uint*)(ch+pe+24+SizeOfOptionalHeader+36)=Characteristics_new;
+	}else return NULL;
+	return ch;
+}
+//****************************************************section merge
+uchar section_merge()
+{
+	uchar* ImageBuffer;
+	uchar* NewBuffer;
+	ImageBuffer=stretching();
+	sectionmerge_modify(ImageBuffer);
+	NewBuffer=compress(ImageBuffer);
+	file_out(NewBuffer,0x4c000);
 	return 1;
 }

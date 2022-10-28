@@ -38,6 +38,7 @@ uchar modify_image_size();
 uchar section_write();
 uint vs(uint pe,char num);
 uchar sectiontable_correct();
-uchar sectiontable_merge();
+uchar* sectionmerge_modify(uchar* ch);
+uchar section_merge();
 #endif
  

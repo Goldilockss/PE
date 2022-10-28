@@ -20,6 +20,6 @@ int main(int argc, char* argv[])
 	//sectiontable_write();
 	//sectiontable_correct();
 	//modify_section_num();
-	sectiontable_merge();
+	section_merge();
 	return 0;
 }
