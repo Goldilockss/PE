@@ -12,7 +12,6 @@ int main(int argc, char* argv[])
 	/*
 	image=stretching(pe_add);
 	New=compress(image);
-	size=NewBuffer_size(image);
 	file_out(New,size);*/
 	//space_enough();
 	//modify_image_size();

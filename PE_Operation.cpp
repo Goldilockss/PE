@@ -25,14 +25,14 @@ uint find_PE()
 		uint pe;
 		a=fgetc(fp);
 		b=fgetc(fp);
-		if ((a=='M') && (b=='Z'))
+		if ((a=='M') && (b=='Z'))			//judge whether MZ starts
 		{
 			fseek(fp,60L,0);
 			pe=fgetc(fp);
 			fseek(fp,pe,0);
 			a=fgetc(fp);
 			b=fgetc(fp);
-			if ((a=='P') && (b=='E'))
+			if ((a=='P') && (b=='E'))		//judge whether there is PE mark
 			{
 				fclose(fp);
 				return pe;
@@ -44,65 +44,13 @@ uint find_PE()
 		}
 	}else return 0;
 }
-//*****************************************************save standard PE head
-uchar* store_PE(uint pe)
-{
-	uchar* ch;
-	FILE* fp;
-	fp=file_open();
-	if (fp!=NULL)
-	{
-		ch=(uchar*)malloc(28);
-		if (ch!=NULL)
-		{
-			fseek(fp,pe+4,0);
-			for (int i=0;i<20;i++)
-			{
-				*ch=fgetc(fp);
-				ch++;
-			}
-			fclose(fp);
-			return ch-i;
-		}else 
-		{
-			printf("Not enough space");
-			fclose(fp);
-			return NULL;
-		}
-	}else return NULL;
-}
-//*****************************************************print section table
-uint pri_Section(uint pe)
-{
-	FILE* fp;
-	fp=file_open();
-	ushort NumberOfSections,SizeOfOptionalHeader;
-	if(fp!=NULL)
-	{
-		fseek(fp,pe+6,0);
-		fread(&NumberOfSections,2,1,fp);
-		fseek(fp,pe+20,0);
-		fread(&SizeOfOptionalHeader,2,1,fp);
-		fseek(fp,pe+24+SizeOfOptionalHeader,0);
-		for (int j=0;j<NumberOfSections;j++)
-		{
-			for (int i=0;i<40;i++)
-			{
-				printf("%02x ",fgetc(fp));
-			}
-			printf("\n");
-		}
-		fclose(fp);
-	}else return 0;
-}
-//****************************************************
-
 //****************************************************FileBuffer get VirtualSize
-uint vs(uint pe,char num)
+uint vs(uchar num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
-	uint VirtualSize;
+	uint pe,VirtualSize;
+	pe=find_PE();
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -115,11 +63,12 @@ uint vs(uint pe,char num)
 	return VirtualSize;
 }
 //****************************************************FileBuffer get PointerToRawData
-uint ptrd(uint pe,char num)
+uint ptrd(uchar num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
-	uint PointerToRawData;
+	uint pe,PointerToRawData;
+	pe=find_PE();
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -132,11 +81,12 @@ uint ptrd(uint pe,char num)
 	return PointerToRawData;
 }
 //***************************************************FileBuffer get VirtualAddress
-uint va(uint pe,char num)
+uint va(uchar num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
-	uint VirtualAddress;
+	uint pe,VirtualAddress;
+	pe=find_PE();
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -149,11 +99,12 @@ uint va(uint pe,char num)
 	return VirtualAddress;
 }
 //****************************************************FileBuffer get SizeOfRawData
-uint sord(uint pe,char num)
+uint sord(uchar num)
 {
 	FILE* fp;
 	ushort SizeOfOptionalHeader;
-	uint SizeOfRawData;
+	uint pe,SizeOfRawData;
+	pe=find_PE();
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -169,11 +120,11 @@ uint sord(uint pe,char num)
 uchar Section_Copy(uchar* ch,uint pe,uint size,uint add_file,uint add_image)
 {
 	FILE* fp;
-	ch=ch+add_image;
+	ch=ch+add_image;			//offset to momery
 	fp=file_open();
 	if (fp!=NULL)
 	{
-		fseek(fp,add_file,0);
+		fseek(fp,add_file,0);	//offset to file
 		for (uint i=0;i<size;i++)
 		{
 			*ch=fgetc(fp);
@@ -215,9 +166,9 @@ uint NewBuffer_size(uchar* ch)
 	SizeOfOptionalHeader=*(ushort*)(ch+PE_add+20);
 	PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+(NumberOfSections-1)*40);
 	SizeOfRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+16+(NumberOfSections-1)*40);
-	return PointerToRawData+SizeOfRawData;
+	return PointerToRawData+SizeOfRawData;		//last PointerToRawData+last SizeOfRawData
 }
-//***********************************************get SizeOfImage
+//***********************************************FileBuffer get SizeOfImage
 uint Image_size()
 {
 	FILE* fp;
@@ -232,7 +183,7 @@ uint Image_size()
 	fclose(fp);
 	return SizeOfImage;
 }
-//***********************************************get AddressOfEntryPoint
+//***********************************************FileBuffer get AddressOfEntryPoint
 uint EntryPoint_add(uint pe)
 {
 	FILE* fp;
@@ -246,7 +197,7 @@ uint EntryPoint_add(uint pe)
 	fclose(fp);
 	return AddressOfEntryPoint;
 }
-//***************************************************get SizeOfOptionalHeader
+//***************************************************FileBuffer get SizeOfOptionalHeader
 ushort optional_size()
 {
 	FILE* fp;
@@ -262,7 +213,7 @@ ushort optional_size()
 	fclose(fp);
 	return SizeOfOptionalHeader;
 }
-//****************************************************get SizeOfHeaders
+//****************************************************FileBuffer get SizeOfHeaders
 uint header_size()
 {
 	FILE* fp;
@@ -277,7 +228,7 @@ uint header_size()
 	fclose(fp);
 	return SizeOfHeaders;
 }
-//***************************************************get NumberOfSections
+//***************************************************FileBuffer get NumberOfSections
 ushort section_num()
 {
 	FILE* fp;
@@ -311,22 +262,22 @@ uchar* stretching()
 		ImageBuffer=(uchar*)malloc(SizeOfImage);
 		if (ImageBuffer!=NULL)
 		{
-			for (uint j=0;j<SizeOfImage;j++)
+			for (uint j=0;j<SizeOfImage;j++)		//initialize to all zeros
 			{
 				*ImageBuffer=0;
 				ImageBuffer++;
 			}
-			ImageBuffer=ImageBuffer-SizeOfImage;
-			fseek(fp,0,0);
-			for (uint i=0;i<SizeOfHeaders;i++)
+			ImageBuffer=ImageBuffer-SizeOfImage;	//the pointer returns to the beginning
+			fseek(fp,0,0);							//the cursor returns to the beginning
+			for (uint i=0;i<SizeOfHeaders;i++)		//copy header and section table
 			{
 				fread(ImageBuffer,1,1,fp);
 				ImageBuffer++;
 			}
-			ImageBuffer=ImageBuffer-i;
-			for (uint k=0;k<NumberOfSections;k++)
+			ImageBuffer=ImageBuffer-i;				//the pointer returns to the beginning
+			for (uint k=0;k<NumberOfSections;k++)	//circular copy section
 			{
-				Section_Copy(ImageBuffer,pe,sord(pe,k),ptrd(pe,k),va(pe,k));
+				Section_Copy(ImageBuffer,pe,sord(k),ptrd(k),va(k));
 			}
 			fclose(fp);
 			return ImageBuffer;
@@ -353,21 +304,21 @@ uchar* compress(uchar* ch)
 	NewBuffer=(uchar*)malloc(PointerToRawData+SizeOfRawData);
 	if (NewBuffer!=NULL)
 	{
-		for (int k=0;k<PointerToRawData+SizeOfRawData;k++)
+		for (int k=0;k<PointerToRawData+SizeOfRawData;k++)		//initialize to all zeros
 		{
 			*NewBuffer=0;
 			NewBuffer++;
 		}
-		NewBuffer=NewBuffer-(PointerToRawData+SizeOfRawData);
-		for (int i=0;i<SizeOfHeaders;i++)
+		NewBuffer=NewBuffer-(PointerToRawData+SizeOfRawData);	//the pointer returns to the beginning
+		for (int i=0;i<SizeOfHeaders;i++)						//copy header and section table
 		{
 			*NewBuffer=*ch;
 			NewBuffer++;
 			ch++;
 		}
-		ch=ch-SizeOfHeaders;
-		NewBuffer=NewBuffer-SizeOfHeaders;
-		for (int j=0;j<NumberOfSections;j++)
+		ch=ch-SizeOfHeaders;									//the pointer returns to the beginning
+		NewBuffer=NewBuffer-SizeOfHeaders;						//the pointer returns to the beginning
+		for (int j=0;j<NumberOfSections;j++)					//circular copy section
 		{	
 			VirtualAddress=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+12+j*40);
 			PointerToRawData=*(uint*)(ch+PE_add+24+SizeOfOptionalHeader+20+j*40);
@@ -384,8 +335,8 @@ uchar* compress(uchar* ch)
 //*******************************************************//copy section(ImageBuffer -> NewBuffer)
 uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size)
 {
-	image=image+add_image;
-	New=New+add_new;
+	image=image+add_image;						//offset to image
+	New=New+add_new;							//offset to new
 	for (int i=0;i<size;i++)
 	{
 		*New=*image;
@@ -394,7 +345,7 @@ uchar Section_Copy_0(uchar*image,uchar*New,uint add_image,uint add_new,uint size
 	}
 	return 0;
 }
-//************************************************judge whether there is enough space to add a section
+//************************************************judge whether there is enough space to add a section(FileBuffer)
 uchar space_enough()
 {
 	FILE* fp;
@@ -407,12 +358,12 @@ uchar space_enough()
 		SizeOfOptionalHeader=optional_size();
 		NumberOfSections=section_num();
 		SizeOfHeaders=header_size();
-		PointerToRawData_first=ptrd(pe,0);
-		if ((PointerToRawData_first-(pe+24+SizeOfOptionalHeader+40*NumberOfSections)) >= 80)
+		PointerToRawData_first=ptrd(0);
+		if ((PointerToRawData_first-(pe+24+SizeOfOptionalHeader+40*NumberOfSections)) >= 80)//first PointerToRawData-last section table
 		{
 			fclose(fp);
 			return 1;
-		}else if ((SizeOfHeaders-60-24-SizeOfOptionalHeader-40*NumberOfSections) >= 80)
+		}else if ((SizeOfHeaders-60-24-SizeOfOptionalHeader-40*NumberOfSections) >= 80)//move NT header and section table up to cover useless data
 		{
 			fclose(fp);
 			return 2;
@@ -442,12 +393,12 @@ uchar sectiontable_write()
 			pe=find_PE();
 			NumberOfSections=section_num();
 			SizeOfOptionalHeader=optional_size();
-			fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections,0);
+			fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections,0);//write after the last section table
 			for (uint i=0;i<40;i++)
 			{
 				fputc(section_new[i],fp);
 			}
-			for (uint j=0;j<40;j++)
+			for (uint j=0;j<40;j++)										//add 40 zeros
 			{
 				fputc(0,fp);
 			}
@@ -456,7 +407,7 @@ uchar sectiontable_write()
 		return 1;
 	}else return 0;
 }
-//*************************************************modify the NumberOfSections(+1)
+//*************************************************modify the NumberOfSections(+1)(FileBuffer)
 uchar modify_section_num()
 {
 	FILE* fp;
@@ -473,7 +424,7 @@ uchar modify_section_num()
 	fclose(fp);
 	return 1;
 }
-//*************************************************modify the SizeOfImage(+1000)
+//*************************************************modify the SizeOfImage(+1000)(FileBuffer)
 uchar modify_image_size()
 {
 	FILE* fp;
@@ -499,15 +450,16 @@ uchar section_write()
 	pe=find_PE();
 	if (fp!=NULL)
 	{
-		fseek(fp,0,2);
-		fseek(fp,1,1);
+		fseek(fp,0,2);				//move cursor to end of file
+		fseek(fp,1,1);				//start a new line
 		for (uint i=0;i<4096;i++)
 		{
 			fputc(code[i],fp);
 		}
+		return 1;
 	}else return 0;
 }
-//***********************************************correcting section table properties
+//***********************************************correcting section table properties(add a section)
 uchar sectiontable_correct()
 {
 	FILE* fp;
@@ -518,16 +470,16 @@ uchar sectiontable_correct()
 	SizeOfRawData0=0x1000;
 	pe=find_PE();
 	NumberOfSections=section_num();
-	VirtualSize=vs(pe,NumberOfSections-1);
-	VirtualAddress=va(pe,NumberOfSections-1);
-	SizeOfRawData=sord(pe,NumberOfSections-1);
-	PointerToRawData=ptrd(pe,NumberOfSections-1);
+	VirtualSize=vs(NumberOfSections-1);
+	VirtualAddress=va(NumberOfSections-1);
+	SizeOfRawData=sord(NumberOfSections-1);
+	PointerToRawData=ptrd(NumberOfSections-1);
 	SizeOfOptionalHeader=optional_size();
-	if (VirtualSize>=SizeOfRawData)
+	if (VirtualSize>=SizeOfRawData)		//calculate new section's VirtualAddress(last VirtualAddress+size)
 	{
 		VirtualAddress_new=VirtualAddress+VirtualSize;
 	}else VirtualAddress_new=VirtualAddress+SizeOfRawData;
-	PointerToRawData_new=PointerToRawData+SizeOfRawData;
+	PointerToRawData_new=PointerToRawData+SizeOfRawData;//last PointerToRawData+last SizeOfRawData
 	fp=file_open();
 	if (fp!=NULL)
 	{
@@ -551,7 +503,7 @@ uchar* sectionmerge_modify(uchar* ch)
 		NumberOfSections=*(ushort*)(ch+pe+6);
 		SizeOfOptionalHeader=*(ushort*)(ch+pe+20);
 		Characteristics_new=*(uint*)(ch+pe+24+SizeOfOptionalHeader+36);
-		for (int i=0;i<NumberOfSections;i++)
+		for (int i=0;i<NumberOfSections;i++)		//all section attributes or operations
 		{
 			Characteristics=*(uint*)(ch+pe+24+SizeOfOptionalHeader+36+i*40);
 			Characteristics_new=Characteristics_new|Characteristics;
@@ -560,7 +512,7 @@ uchar* sectionmerge_modify(uchar* ch)
 		*(ushort*)(ch+pe+6)=NumberOfSections;
 		VirtualAddress=*(uint*)(ch+pe+24+SizeOfOptionalHeader+12);
 		SizeOfImage=*(uint*)(ch+pe+80);
-		VirtualSize=SizeOfRawData=SizeOfImage-VirtualAddress;
+		VirtualSize=SizeOfRawData=SizeOfImage-VirtualAddress;	//the combined size of all sections(SizeOfImage-last VirtualAddress)
 		*(uint*)(ch+pe+24+SizeOfOptionalHeader+8)=VirtualSize;
 		*(uint*)(ch+pe+24+SizeOfOptionalHeader+16)=SizeOfRawData;
 		*(uint*)(ch+pe+24+SizeOfOptionalHeader+36)=Characteristics_new;
@@ -572,9 +524,64 @@ uchar section_merge()
 {
 	uchar* ImageBuffer;
 	uchar* NewBuffer;
-	ImageBuffer=stretching();
-	sectionmerge_modify(ImageBuffer);
-	NewBuffer=compress(ImageBuffer);
-	file_out(NewBuffer,0x4c000);
+	ImageBuffer=stretching();			//stretching
+	sectionmerge_modify(ImageBuffer);	//section table amendment
+	NewBuffer=compress(ImageBuffer);	//compress
+	file_out(NewBuffer,NewBuffer_size(NewBuffer));//output file
 	return 1;
+}
+//***************************************************RVA -> FOA
+uint RVA_FOA(uint add)
+{
+	ushort NumberOfSections,section_which;
+	uint VirtualAddress,SizeOfHeaders,PointerToRawData,SizeOfRawData;
+	NumberOfSections=section_num();
+	SizeOfHeaders=header_size();
+	if (add<va(0))											//whether before the first section
+	{
+		if (add>=va(NumberOfSections-1))					//whether in the last section
+		{
+			for (int i=0;i<NumberOfSections;i++)			//loop judgment between which two section
+			{
+				if ((add>=va(i)) && (add<va(i+1)))
+				{
+					section_which=i;
+					break;
+				}
+			}
+		}else
+		{
+			if((add-va(NumberOfSections-1))<=sord(NumberOfSections-1))//whether to add zeros for memory alignment
+			{
+				printf("In last section");
+				PointerToRawData=ptrd(NumberOfSections-1);
+				return PointerToRawData+(add-va(NumberOfSections-1));
+			}else
+			{
+				printf("Zero filling to align memory");
+				return 0;
+			}
+		}
+	}else
+	{
+		if (add<=SizeOfHeaders)										////whether to add zeros for memory alignment
+		{
+			printf("Not in section");
+			return add;
+		}else
+		{
+			printf("Zero filling to align memory");
+			return 0;
+		}
+	}
+	if ((add-va(section_which))<=sord(section_which))			////whether to add zeros for memory alignment
+	{
+		printf("In No.%d section",section_which+1);
+		PointerToRawData=ptrd(section_which);
+		return PointerToRawData+(add-va(section_which));
+	}else
+	{
+		printf("Zero filling to align memory");
+		return 0;
+	}
 }
