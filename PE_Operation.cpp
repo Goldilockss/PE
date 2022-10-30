@@ -537,9 +537,9 @@ uint RVA_FOA(uint add)
 	uint VirtualAddress,SizeOfHeaders,PointerToRawData,SizeOfRawData;
 	NumberOfSections=section_num();
 	SizeOfHeaders=header_size();
-	if (add<va(0))											//whether before the first section
+	if (add>=va(0))											//whether before the first section
 	{
-		if (add>=va(NumberOfSections-1))					//whether in the last section
+		if (add<va(NumberOfSections-1))					//whether in the last section
 		{
 			for (int i=0;i<NumberOfSections;i++)			//loop judgment between which two section
 			{
@@ -553,35 +553,79 @@ uint RVA_FOA(uint add)
 		{
 			if((add-va(NumberOfSections-1))<=sord(NumberOfSections-1))//whether to add zeros for memory alignment
 			{
-				printf("In last section");
+				printf("In last section\n");
 				PointerToRawData=ptrd(NumberOfSections-1);
 				return PointerToRawData+(add-va(NumberOfSections-1));
 			}else
 			{
-				printf("Zero filling to align memory");
+				printf("Zero filling to align memory\n");
 				return 0;
 			}
 		}
 	}else
 	{
-		if (add<=SizeOfHeaders)										////whether to add zeros for memory alignment
+		if (add<=SizeOfHeaders)										//whether to add zeros for memory alignment
 		{
-			printf("Not in section");
+			printf("Not in section\n");
 			return add;
 		}else
 		{
-			printf("Zero filling to align memory");
+			printf("Zero filling to align memory\n");
 			return 0;
 		}
 	}
-	if ((add-va(section_which))<=sord(section_which))			////whether to add zeros for memory alignment
+	if ((add-va(section_which))<=sord(section_which))			//whether to add zeros for memory alignment
 	{
-		printf("In No.%d section",section_which+1);
+		printf("In No.%d section\n",section_which+1);
 		PointerToRawData=ptrd(section_which);
 		return PointerToRawData+(add-va(section_which));
 	}else
 	{
-		printf("Zero filling to align memory");
+		printf("Zero filling to align memory\n");
 		return 0;
 	}
+}
+//****************************************************get address of export
+uint export_add()
+{
+	FILE* fp;
+	uint pe,VirtualAddress;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+24+96,0);
+		fread(&VirtualAddress,4,1,fp);
+		if (VirtualAddress!=0)
+		{	
+			fclose(fp);
+			return VirtualAddress;
+		}else
+		{
+			printf("No export\n");
+			return 0;
+		}
+	}else return 0;
+}
+//***********************************************get address of import
+uint import_add()
+{
+	FILE* fp;
+	uint pe,VirtualAddress;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+24+104,0);
+		fread(&VirtualAddress,4,1,fp);
+		if (VirtualAddress!=0)
+		{	
+			fclose(fp);
+			return VirtualAddress;
+		}else
+		{
+			printf("No import\n");
+			return 0;
+		}
+	}else return 0;
 }

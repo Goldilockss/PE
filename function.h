@@ -39,5 +39,8 @@ uchar sectiontable_correct();
 uchar* sectionmerge_modify(uchar* ch);
 uchar section_merge();
 uint header_size();
+uint RVA_FOA(uint add);
+uint export_add();
+uint import_add();
 #endif
  
