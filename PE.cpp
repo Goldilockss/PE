@@ -20,5 +20,6 @@ int main(int argc, char* argv[])
 	//sectiontable_correct();
 	//modify_section_num();
 	//section_merge();
+	export_pri();
 	return 0;
 }

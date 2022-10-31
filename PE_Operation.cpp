@@ -6,7 +6,7 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1.exe","rb+");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\testdll.dll","rb+");
 	return fp;
 }
 FILE* file_write()
@@ -553,12 +553,12 @@ uint RVA_FOA(uint add)
 		{
 			if((add-va(NumberOfSections-1))<=sord(NumberOfSections-1))//whether to add zeros for memory alignment
 			{
-				printf("In last section\n");
+				//printf("In last section\n");
 				PointerToRawData=ptrd(NumberOfSections-1);
 				return PointerToRawData+(add-va(NumberOfSections-1));
 			}else
 			{
-				printf("Zero filling to align memory\n");
+				//printf("Zero filling to align memory\n");
 				return 0;
 			}
 		}
@@ -566,22 +566,22 @@ uint RVA_FOA(uint add)
 	{
 		if (add<=SizeOfHeaders)										//whether to add zeros for memory alignment
 		{
-			printf("Not in section\n");
+			//printf("Not in section\n");
 			return add;
 		}else
 		{
-			printf("Zero filling to align memory\n");
+			//printf("Zero filling to align memory\n");
 			return 0;
 		}
 	}
 	if ((add-va(section_which))<=sord(section_which))			//whether to add zeros for memory alignment
 	{
-		printf("In No.%d section\n",section_which+1);
+		//printf("In No.%d section\n",section_which+1);
 		PointerToRawData=ptrd(section_which);
 		return PointerToRawData+(add-va(section_which));
 	}else
 	{
-		printf("Zero filling to align memory\n");
+		//printf("Zero filling to align memory\n");
 		return 0;
 	}
 }
@@ -603,6 +603,7 @@ uint export_add()
 		}else
 		{
 			printf("No export\n");
+			fclose(fp);
 			return 0;
 		}
 	}else return 0;
@@ -625,7 +626,38 @@ uint import_add()
 		}else
 		{
 			printf("No import\n");
+			fclose(fp);
 			return 0;
 		}
 	}else return 0;
+}
+//***********************************************printf export table
+uchar export_pri()
+{
+	FILE* fp;
+	uint pe,AddressOfNames,VirtualAddress_ex,NumberOfNames,name_add,ch;
+	pe=find_PE();
+	VirtualAddress_ex=export_add();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+32,0);
+		fread(&AddressOfNames,4,1,fp);
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+24,0);
+		fread(&NumberOfNames,4,1,fp);
+		for (int i=0;i<NumberOfNames;i++)
+		{
+			fseek(fp,RVA_FOA(AddressOfNames)+i*4,0);
+			fread(&name_add,4,1,fp);
+			fseek(fp,name_add,0);
+			do									//print name
+			{
+				ch=fgetc(fp);
+				printf("%c",ch);
+			}while(ch!=0);
+			printf("\n");
+		}
+	}else return 0;
+	fclose(fp);
+	return 1;
 }
