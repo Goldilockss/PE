@@ -42,6 +42,9 @@ uint header_size();
 uint RVA_FOA(uint add);
 uint export_add();
 uint import_add();
+uint relocation_add();
 uchar export_pri();
+uchar relocation_pri();
+uchar relocation_pri();
 #endif
  

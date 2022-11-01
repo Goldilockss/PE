@@ -631,12 +631,36 @@ uint import_add()
 		}
 	}else return 0;
 }
+//***********************************************get address of relocation
+uint relocation_add()
+{
+	FILE* fp;
+	uint pe,VirtualAddress;
+	pe=find_PE();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,pe+24+136,0);
+		fread(&VirtualAddress,4,1,fp);
+		if (VirtualAddress!=0)
+		{	
+			fclose(fp);
+			return VirtualAddress;
+		}else
+		{
+			printf("No relocation\n");
+			fclose(fp);
+			return 0;
+		}
+	}else return 0;
+}
 //***********************************************printf export table
 uchar export_pri()
 {
 	FILE* fp;
-	uint pe,AddressOfNames,VirtualAddress_ex,NumberOfNames,name_add,ch;
-	pe=find_PE();
+	ushort ordinals;
+	uint pe,AddressOfNames,VirtualAddress_ex,NumberOfNames,name_add,
+		ch,AddressOfNameOrdinals,AddressOfFunctions,NumberOfFunctions,function_add;
 	VirtualAddress_ex=export_add();
 	fp=file_open();
 	if (fp!=NULL)
@@ -645,17 +669,69 @@ uchar export_pri()
 		fread(&AddressOfNames,4,1,fp);
 		fseek(fp,RVA_FOA(VirtualAddress_ex)+24,0);
 		fread(&NumberOfNames,4,1,fp);
+		printf("Names:\n");
 		for (int i=0;i<NumberOfNames;i++)
 		{
 			fseek(fp,RVA_FOA(AddressOfNames)+i*4,0);
 			fread(&name_add,4,1,fp);
 			fseek(fp,name_add,0);
-			do									//print name
+			printf("%8x ",name_add);
+			do									//printf names
 			{
 				ch=fgetc(fp);
 				printf("%c",ch);
 			}while(ch!=0);
 			printf("\n");
+		}
+		//**************************************
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+36,0);
+		fread(&AddressOfNameOrdinals,4,1,fp);
+		printf("Ordinals:\n");
+		for (int j=0;j<NumberOfNames;j++)		//printf ordinals
+		{
+			fseek(fp,AddressOfNameOrdinals+j*2,0);
+			fread(&ordinals,2,1,fp);
+			printf("%4x\n",ordinals);
+		}
+		//**************************************
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+20,0);
+		fread(&NumberOfFunctions,4,1,fp);
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+28,0);
+		fread(&AddressOfFunctions,4,1,fp);
+		printf("Functions:\n");
+		for (int k=0;k<NumberOfFunctions;k++)	//printf functions
+		{
+			fseek(fp,RVA_FOA(AddressOfFunctions)+k*4,0);
+			fread(&function_add,4,1,fp);
+			printf("%8x\n",function_add);
+		}
+	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//*************************************************printf relocation
+uchar relocation_pri()
+{
+	FILE* fp;
+	ushort modify_add;
+	uint VirtualAddress_rel,VirtualAdress_block,SizeOfBlock;
+	VirtualAddress_rel=relocation_add();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,RVA_FOA(VirtualAddress_rel),0);
+		fread(&VirtualAdress_block,4,1,fp);
+		printf("Relocation:\n");
+		for (;VirtualAdress_block!=0;)			//printf block
+		{
+			fread(&SizeOfBlock,4,1,fp);
+			printf("%8x\n",VirtualAdress_block);
+			for (int i=0;i<(SizeOfBlock-8)/2;i++)
+			{
+				fread(&modify_add,2,1,fp);
+				printf("%4x\n",VirtualAdress_block+(modify_add-0x3000));
+			}
+			fread(&VirtualAdress_block,4,1,fp);
 		}
 	}else return 0;
 	fclose(fp);

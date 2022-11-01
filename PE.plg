@@ -6,20 +6,20 @@
 --------------------Configuration: PE - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\HP\AppData\Local\Temp\RSP3518.tmp" with contents
+Creating temporary file "C:\Users\HP\AppData\Local\Temp\RSPF0C4.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Fp"Debug/PE.pch" /Yu"stdafx.h" /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
 "E:\stm32\逆向\PE\PE_Operation.cpp"
 ]
-Creating command line "cl.exe @C:\Users\HP\AppData\Local\Temp\RSP3518.tmp" 
-Creating temporary file "C:\Users\HP\AppData\Local\Temp\RSP3519.tmp" with contents
+Creating command line "cl.exe @C:\Users\HP\AppData\Local\Temp\RSPF0C4.tmp" 
+Creating temporary file "C:\Users\HP\AppData\Local\Temp\RSPF0C5.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/PE.pdb" /debug /machine:I386 /out:"Debug/PE.exe" /pdbtype:sept 
 ".\Debug\PE.obj"
 ".\Debug\PE_Operation.obj"
 ".\Debug\StdAfx.obj"
 ]
-Creating command line "link.exe @C:\Users\HP\AppData\Local\Temp\RSP3519.tmp"
+Creating command line "link.exe @C:\Users\HP\AppData\Local\Temp\RSPF0C5.tmp"
 <h3>Output Window</h3>
 Compiling...
 PE_Operation.cpp
@@ -35,7 +35,11 @@ E:\stm32\逆向\PE\PE_Operation.cpp(580) : warning C4244: 'argument' : conversion 
 E:\stm32\逆向\PE\PE_Operation.cpp(581) : warning C4244: 'argument' : conversion from 'unsigned short' to 'unsigned char', possible loss of data
 E:\stm32\逆向\PE\PE_Operation.cpp(537) : warning C4101: 'VirtualAddress' : unreferenced local variable
 E:\stm32\逆向\PE\PE_Operation.cpp(537) : warning C4101: 'SizeOfRawData' : unreferenced local variable
-E:\stm32\逆向\PE\PE_Operation.cpp(648) : warning C4018: '<' : signed/unsigned mismatch
+E:\stm32\逆向\PE\PE_Operation.cpp(673) : warning C4018: '<' : signed/unsigned mismatch
+E:\stm32\逆向\PE\PE_Operation.cpp(690) : warning C4018: '<' : signed/unsigned mismatch
+E:\stm32\逆向\PE\PE_Operation.cpp(702) : warning C4018: '<' : signed/unsigned mismatch
+E:\stm32\逆向\PE\PE_Operation.cpp(662) : warning C4101: 'pe' : unreferenced local variable
+E:\stm32\逆向\PE\PE_Operation.cpp(729) : warning C4018: '<' : signed/unsigned mismatch
 E:\stm32\逆向\PE\PE_Operation.cpp(46) : warning C4715: 'find_PE' : not all control paths return a value
 Linking...
 
