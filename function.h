@@ -45,6 +45,7 @@ uint import_add();
 uint relocation_add();
 uchar export_pri();
 uchar relocation_pri();
-uchar relocation_pri();
+uchar export_move();
+uchar export_move_complete();
 #endif
  

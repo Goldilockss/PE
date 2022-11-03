@@ -737,3 +737,120 @@ uchar relocation_pri()
 	fclose(fp);
 	return 1;
 }
+//************************************************export table move
+uchar export_move()
+{
+	FILE* fp;
+	uchar ch;
+	ushort NumberOfSections,ordinals;
+	uint pe,PointerToRawData,VirtualAddress_ex,AddressOfFunctions,function_add,NumberOfFunctions,
+		NumberOfNames,AddressOfNameOrdinals,name_add,AddressOfNames,
+		AddressOfFunctions_new,AddressOfName_new,AddressOfNameOrdinals_new,name_add_new;
+	pe=find_PE();
+	NumberOfSections=section_num();
+	PointerToRawData=ptrd(NumberOfSections-1);
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		VirtualAddress_ex=export_add();
+		for (int i=0;i<40;i++)			//move export
+		{
+			fseek(fp,RVA_FOA(VirtualAddress_ex)+i,0);
+			ch=fgetc(fp);
+			fseek(fp,PointerToRawData+i,0);
+			fputc(ch,fp);
+		}
+		//*************************************
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+20,0);
+		fread(&NumberOfFunctions,4,1,fp);
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+28,0);
+		fread(&AddressOfFunctions,4,1,fp);
+		for (int j=0;j<NumberOfFunctions;j++)	//move functions
+		{
+			fseek(fp,RVA_FOA(AddressOfFunctions)+j*4,0);
+			fread(&function_add,4,1,fp);
+			fseek(fp,PointerToRawData+40+j*4,0);
+			fwrite(&function_add,4,1,fp);
+		}
+		//*************************************
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+24,0);
+		fread(&NumberOfNames,4,1,fp);
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+36,0);
+		fread(&AddressOfNameOrdinals,4,1,fp);
+		for (int k=0;k<NumberOfNames;k++)	//move ordinals
+		{
+			fseek(fp,AddressOfNameOrdinals+k*2,0);
+			fread(&ordinals,2,1,fp);
+			fseek(fp,PointerToRawData+40+NumberOfFunctions*4+k*2,0);
+			fwrite(&ordinals,2,1,fp);
+		}
+		//*************************************
+		fseek(fp,RVA_FOA(VirtualAddress_ex)+32,0);
+		fread(&AddressOfNames,4,1,fp);
+		for (int m=0;m<NumberOfNames;m++)	//move name_add
+		{
+			fseek(fp,RVA_FOA(AddressOfNames)+m*4,0);
+			fread(&name_add,4,1,fp);
+			fseek(fp,PointerToRawData+40+NumberOfFunctions*4+NumberOfNames*2+m*4,0);
+			fwrite(&name_add,4,1,fp);
+		}
+		//*************************************
+		uchar num=0;
+		for (int n=0;n<NumberOfNames;n++)	//move name
+		{
+			fseek(fp,RVA_FOA(AddressOfNames)+n*4,0);
+			fread(&name_add,4,1,fp);
+			fseek(fp,name_add,0);
+			do								
+			{
+				ch=fgetc(fp);
+				fseek(fp,PointerToRawData+40+NumberOfFunctions*4+NumberOfNames*2+NumberOfNames*4+num,0);
+				fputc(ch,fp);
+				num++;
+				fseek(fp,name_add+num,0);
+			}while(ch!=0);
+			num=0;
+		}
+		//************************************
+		fseek(fp,pe+24+96,0);	//correct VirtualAddress_ex
+		fwrite(&PointerToRawData,4,1,fp);
+		AddressOfFunctions_new=PointerToRawData+40;	//corect AddressOfFunctions
+		fseek(fp,PointerToRawData+28,0);
+		fwrite(&AddressOfFunctions_new,4,1,fp);	
+		AddressOfName_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames;	//correct AddressOfName
+		fseek(fp,PointerToRawData+32,0);
+		fwrite(&AddressOfName_new,4,1,fp);	
+		AddressOfNameOrdinals_new=PointerToRawData+40+4*NumberOfFunctions;	//correct AddressOfNameOrdinals
+		fseek(fp,PointerToRawData+36,0);
+		fwrite(&AddressOfNameOrdinals_new,4,1,fp);
+		fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames,0);	//correct first name_add
+		name_add_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames;
+		fwrite(&name_add_new,4,1,fp);
+		for (int x=0;x<NumberOfNames-1;x++)	//correct remaining name_add
+		{
+			int y=0;
+			do
+			{
+				fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+y,0);
+				ch=fgetc(fp);
+				y++;
+			}while(ch!=0);
+			name_add_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+y;
+			fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*(x+1),0);
+			fwrite(&name_add_new,4,1,fp);
+		}
+	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//****************************************************create a new section and move the export table
+uchar export_move_complete()
+{
+	sectiontable_write();	//write a blank section table
+	section_write();	//write a blank section
+	sectiontable_correct();	//revised section table data
+	modify_section_num();	//revised NumberOfSections
+	modify_image_size();	//revised SizeOfImage
+	export_move();	//move export table
+	return 1;
+}
