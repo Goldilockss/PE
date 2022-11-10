@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
 	//section_merge();
 	//export_pri();
 	//relocation_pri();
-	export_move_complete();
+	//export_move_complete();
+	import_pri();
 	return 0;
 }

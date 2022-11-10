@@ -47,5 +47,6 @@ uchar export_pri();
 uchar relocation_pri();
 uchar export_move();
 uchar export_move_complete();
+uchar import_pri();
 #endif
  

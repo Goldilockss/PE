@@ -6,7 +6,7 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\testdll.dll","rb+");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1.exe","rb+");
 	return fp;
 }
 FILE* file_write()
@@ -680,7 +680,7 @@ uchar export_pri()
 			{
 				ch=fgetc(fp);
 				printf("%c",ch);
-			}while(ch!=0);
+			}while (ch!=0);
 			printf("\n");
 		}
 		//**************************************
@@ -745,7 +745,7 @@ uchar export_move()
 	ushort NumberOfSections,ordinals;
 	uint pe,PointerToRawData,VirtualAddress_ex,AddressOfFunctions,function_add,NumberOfFunctions,
 		NumberOfNames,AddressOfNameOrdinals,name_add,AddressOfNames,
-		AddressOfFunctions_new,AddressOfName_new,AddressOfNameOrdinals_new,name_add_new;
+		AddressOfFunctions_new,AddressOfName_new,AddressOfNameOrdinals_new,name_add_new,VirtualAddress_ex_new;
 	pe=find_PE();
 	NumberOfSections=section_num();
 	PointerToRawData=ptrd(NumberOfSections-1);
@@ -795,7 +795,9 @@ uchar export_move()
 			fwrite(&name_add,4,1,fp);
 		}
 		//*************************************
+		/*
 		uchar num=0;
+		uchar name_long=0;
 		for (int n=0;n<NumberOfNames;n++)	//move name
 		{
 			fseek(fp,RVA_FOA(AddressOfNames)+n*4,0);
@@ -804,38 +806,54 @@ uchar export_move()
 			do								
 			{
 				ch=fgetc(fp);
-				fseek(fp,PointerToRawData+40+NumberOfFunctions*4+NumberOfNames*2+NumberOfNames*4+num,0);
+				fseek(fp,PointerToRawData+40+NumberOfFunctions*4+NumberOfNames*2+NumberOfNames*4+name_long+num,0);
 				fputc(ch,fp);
 				num++;
 				fseek(fp,name_add+num,0);
 			}while(ch!=0);
+			name_long=name_long+num;
 			num=0;
 		}
+		*/
+		uchar num=0;
+		fseek(fp,RVA_FOA(AddressOfNames),0);
+		fread(&name_add,4,1,fp);
+		fseek(fp,name_add,0);
+		for (int n=0;n<NumberOfNames;)
+		{
+			ch=fgetc(fp);
+			fseek(fp,PointerToRawData+40+NumberOfFunctions*4+NumberOfNames*2+NumberOfNames*4+num,0);
+			fputc(ch,fp);
+			num++;
+			fseek(fp,name_add+num,0);
+			if (ch=0) n++;
+		}
 		//************************************
-		fseek(fp,pe+24+96,0);	//correct VirtualAddress_ex
-		fwrite(&PointerToRawData,4,1,fp);
-		AddressOfFunctions_new=PointerToRawData+40;	//corect AddressOfFunctions
+		VirtualAddress_ex_new=va(NumberOfSections-1);	//correct VirtualAddress_ex
+		fseek(fp,pe+24+96,0);	
+		fwrite(&VirtualAddress_ex_new,4,1,fp);
+		AddressOfFunctions_new=VirtualAddress_ex_new+40;	//corect AddressOfFunctions
 		fseek(fp,PointerToRawData+28,0);
 		fwrite(&AddressOfFunctions_new,4,1,fp);	
-		AddressOfName_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames;	//correct AddressOfName
+		AddressOfName_new=VirtualAddress_ex_new+40+4*NumberOfFunctions+2*NumberOfNames;	//correct AddressOfName
 		fseek(fp,PointerToRawData+32,0);
 		fwrite(&AddressOfName_new,4,1,fp);	
-		AddressOfNameOrdinals_new=PointerToRawData+40+4*NumberOfFunctions;	//correct AddressOfNameOrdinals
+		AddressOfNameOrdinals_new=VirtualAddress_ex_new+40+4*NumberOfFunctions;	//correct AddressOfNameOrdinals
 		fseek(fp,PointerToRawData+36,0);
 		fwrite(&AddressOfNameOrdinals_new,4,1,fp);
 		fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames,0);	//correct first name_add
 		name_add_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames;
 		fwrite(&name_add_new,4,1,fp);
-		for (int x=0;x<NumberOfNames-1;x++)	//correct remaining name_add
+		uchar name_size=0;	//correct remaining name_add
+		for (int x=0;x<NumberOfNames-1;x++)
 		{
-			int y=0;
 			do
 			{
-				fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+y,0);
+				fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+name_size,0);
 				ch=fgetc(fp);
-				y++;
-			}while(ch!=0);
-			name_add_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+y;
+				name_size++;
+			}while (ch!=0);
+			name_add_new=PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*NumberOfNames+name_size;
 			fseek(fp,PointerToRawData+40+4*NumberOfFunctions+2*NumberOfNames+4*(x+1),0);
 			fwrite(&name_add_new,4,1,fp);
 		}
@@ -852,5 +870,59 @@ uchar export_move_complete()
 	modify_section_num();	//revised NumberOfSections
 	modify_image_size();	//revised SizeOfImage
 	export_move();	//move export table
+	return 1;
+}
+//***************************************************printf import table
+uchar import_pri()
+{
+	FILE* fp;
+	uchar ch;
+	uint pe,VirtualAddress_im,OriginalFirstThunk,Name,FirstThunk,Ordinal_AddressOfData;
+	VirtualAddress_im=import_add();
+	fp=file_open();
+	if (fp!=NULL)
+	{
+		fseek(fp,RVA_FOA(VirtualAddress_im)+12,0);
+		fread(&Name,4,1,fp);
+		fseek(fp,RVA_FOA(Name),0);
+		for (int i=0;Name!=0;i++)	////whether the end of dll
+		{
+			fseek(fp,RVA_FOA(VirtualAddress_im)+i*20,0);
+			fread(&OriginalFirstThunk,4,1,fp);
+			printf("%8x  ",OriginalFirstThunk);
+			fseek(fp,RVA_FOA(VirtualAddress_im)+12+i*20,0);
+			fread(&Name,4,1,fp);
+			fseek(fp,RVA_FOA(Name),0);
+			do	//printf .dll
+			{
+				ch=fgetc(fp);
+				printf("%c",ch);
+			}while (ch!=0);
+			printf("\n");
+			fseek(fp,RVA_FOA(OriginalFirstThunk),0);
+			fread(&Ordinal_AddressOfData,4,1,fp);
+			for (int j=0;Ordinal_AddressOfData!=0;j++)	//whether the end of function
+			{
+				fseek(fp,RVA_FOA(OriginalFirstThunk)+j*4,0);
+				fread(&Ordinal_AddressOfData,4,1,fp);
+				if ((Ordinal_AddressOfData & 0x80000000)==0)
+				{
+					if (Ordinal_AddressOfData!=0)
+					{
+						printf("%8x  ",(Ordinal_AddressOfData & 0x7fffffff));
+						fseek(fp,RVA_FOA(Ordinal_AddressOfData)+2,0);
+						do	//printf function name
+						{
+							ch=fgetc(fp);
+							printf("%c",ch);
+						}while (ch!=0);
+						printf("\n");
+					}
+				}else printf("Ordinal:%8x\n",Ordinal_AddressOfData);
+			}
+			printf("\n");
+		}
+	}else return 0;
+	fclose(fp);
 	return 1;
 }
