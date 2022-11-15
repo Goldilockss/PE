@@ -7,12 +7,7 @@
 #include "function.h"
 int main(int argc, char* argv[])
 {
-	uint pe_add,size;
-	pe_add=find_PE();
-	/*
-	image=stretching(pe_add);
-	New=compress(image);
-	file_out(New,size);*/
+	uint a,b;
 	//space_enough();
 	//modify_image_size();
 	//section_write();
@@ -23,6 +18,8 @@ int main(int argc, char* argv[])
 	//export_pri();
 	//relocation_pri();
 	//export_move_complete();
-	import_pri();
+	//import_pri();
+	//section_add();
+	ImportInject();
 	return 0;
 }

@@ -40,6 +40,7 @@ uchar* sectionmerge_modify(uchar* ch);
 uchar section_merge();
 uint header_size();
 uint RVA_FOA(uint add);
+uint FOA_RVA(uint add);
 uint export_add();
 uint import_add();
 uint relocation_add();
@@ -48,5 +49,8 @@ uchar relocation_pri();
 uchar export_move();
 uchar export_move_complete();
 uchar import_pri();
+uchar section_add();
+uchar memcy(uchar* source,uchar* destination,uint size);
+uchar ImportInject();
 #endif
  

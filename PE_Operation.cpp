@@ -6,7 +6,7 @@
 #include "function.h"
 FILE* file_open()
 {
-	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1.exe","rb+");
+	FILE* fp=fopen("C:\\Users\\HP\\Desktop\\1595756543VideoCap(2) - ¸±±¾.exe","rb+");
 	return fp;
 }
 FILE* file_write()
@@ -36,9 +36,10 @@ uint find_PE()
 			{
 				fclose(fp);
 				return pe;
-			}
+			}else return 0;
 		}else
 		{
+			fclose(fp);
 			printf("Not a .exe");
 			return 0;
 		}
@@ -444,17 +445,22 @@ uchar modify_image_size()
 uchar section_write()
 {
 	FILE* fp;
-	uint pe;
+	uchar* pFileBuffer=NULL;
+	uint pe,size;
 	uchar code[4096]={0x00};
 	fp=file_open();
 	pe=find_PE();
-	if (fp!=NULL)
+	fseek(fp,0,2);
+	size=ftell(fp);
+	pFileBuffer=(uchar*)malloc(size+0x1000);
+	if ((fp!=NULL) && (pFileBuffer!=NULL))
 	{
-		fseek(fp,0,2);				//move cursor to end of file
-		fseek(fp,1,1);				//start a new line
-		for (uint i=0;i<4096;i++)
+		fread(pFileBuffer,size,1,fp);//move cursor to end of file
+		pFileBuffer+=size;
+		for (int i=0;i<0x1000;i++)
 		{
-			fputc(code[i],fp);
+			*pFileBuffer=0;
+			pFileBuffer++;
 		}
 		return 1;
 	}else return 0;
@@ -465,9 +471,10 @@ uchar sectiontable_correct()
 	FILE* fp;
 	ushort NumberOfSections,SizeOfOptionalHeader;
 	uint pe,VirtualSize,VirtualAddress,SizeOfRawData,VirtualAddress_new,PointerToRawData,PointerToRawData_new;
-	uint VirtualSize0,SizeOfRawData0;
+	uint VirtualSize0,SizeOfRawData0,Characteristics,Characteristics_new;
 	VirtualSize0=0x1000;
 	SizeOfRawData0=0x1000;
+	fp=file_open();
 	pe=find_PE();
 	NumberOfSections=section_num();
 	VirtualSize=vs(NumberOfSections-1);
@@ -475,12 +482,21 @@ uchar sectiontable_correct()
 	SizeOfRawData=sord(NumberOfSections-1);
 	PointerToRawData=ptrd(NumberOfSections-1);
 	SizeOfOptionalHeader=optional_size();
+	fseek(fp,pe+24+SizeOfOptionalHeader+36,0);	//modify the Characteristics of the new section table
+	fread(&Characteristics_new,4,1,fp);
+	for (int i=0;i<NumberOfSections;i++)
+	{
+		fseek(fp,pe+24+SizeOfOptionalHeader+36+i*40,0);
+		fread(&Characteristics,4,1,fp);
+		Characteristics_new=Characteristics_new|Characteristics;
+	}
+	fseek(fp,pe+24+SizeOfOptionalHeader+36+NumberOfSections*40,0);
+	fwrite(&Characteristics_new,4,1,fp);
 	if (VirtualSize>=SizeOfRawData)		//calculate new section's VirtualAddress(last VirtualAddress+size)
 	{
 		VirtualAddress_new=VirtualAddress+VirtualSize;
 	}else VirtualAddress_new=VirtualAddress+SizeOfRawData;
 	PointerToRawData_new=PointerToRawData+SizeOfRawData;//last PointerToRawData+last SizeOfRawData
-	fp=file_open();
 	if (fp!=NULL)
 	{
 		fseek(fp,pe+24+SizeOfOptionalHeader+40*NumberOfSections+8,0);
@@ -541,7 +557,7 @@ uint RVA_FOA(uint add)
 	{
 		if (add<va(NumberOfSections-1))					//whether in the last section
 		{
-			for (int i=0;i<NumberOfSections;i++)			//loop judgment between which two section
+			for (int i=0;i<NumberOfSections-1;i++)			//loop judgment between which two section
 			{
 				if ((add>=va(i)) && (add<va(i+1)))
 				{
@@ -584,6 +600,36 @@ uint RVA_FOA(uint add)
 		//printf("Zero filling to align memory\n");
 		return 0;
 	}
+}
+//****************************************************FOA -> RVA
+uint FOA_RVA(uint add)
+{
+	ushort NumberOfSections,section_which;
+	uint VirtualAddress,SizeOfHeaders,PointerToRawData,SizeOfRawData;
+	NumberOfSections=section_num();
+	if (add>=ptrd(0))
+	{
+		if (add<ptrd(NumberOfSections-1))
+		{
+			for (int i=0;i<NumberOfSections-1;i++)
+			{
+				if ((add>=ptrd(i)) && (add<ptrd(i+1)))
+				{
+					//printf("In No.%d section\n",i+1);
+					return add-ptrd(i)+va(i);
+				}
+			}
+		}else
+		{
+			//printf("In the last section");
+			return add-ptrd(NumberOfSections-1)+va(NumberOfSections-1);
+		}
+	}else
+	{
+		//printf("Not in section");
+		return add;
+	}
+	return 0;
 }
 //****************************************************get address of export
 uint export_add()
@@ -795,7 +841,7 @@ uchar export_move()
 			fwrite(&name_add,4,1,fp);
 		}
 		//*************************************
-		/*
+		
 		uchar num=0;
 		uchar name_long=0;
 		for (int n=0;n<NumberOfNames;n++)	//move name
@@ -814,7 +860,7 @@ uchar export_move()
 			name_long=name_long+num;
 			num=0;
 		}
-		*/
+		/*
 		uchar num=0;
 		fseek(fp,RVA_FOA(AddressOfNames),0);
 		fread(&name_add,4,1,fp);
@@ -828,6 +874,7 @@ uchar export_move()
 			fseek(fp,name_add+num,0);
 			if (ch=0) n++;
 		}
+		*/
 		//************************************
 		VirtualAddress_ex_new=va(NumberOfSections-1);	//correct VirtualAddress_ex
 		fseek(fp,pe+24+96,0);	
@@ -870,6 +917,16 @@ uchar export_move_complete()
 	modify_section_num();	//revised NumberOfSections
 	modify_image_size();	//revised SizeOfImage
 	export_move();	//move export table
+	return 1;
+}
+//***************************************************add a section
+uchar section_add()
+{
+	sectiontable_write();
+	//section_write();
+	sectiontable_correct();
+	modify_section_num();
+	modify_image_size();
 	return 1;
 }
 //***************************************************printf import table
@@ -923,6 +980,92 @@ uchar import_pri()
 			printf("\n");
 		}
 	}else return 0;
+	fclose(fp);
+	return 1;
+}
+//******************************************************copy from memory to memory
+uchar memcy(uchar* source,uchar* destination,uint size)
+{
+	for (int i=0;i<size;i++)
+	{
+		*source=*destination;
+		source++;
+		destination++;
+	}
+	return 1;
+}
+//******************************************************import inject
+uchar ImportInject()
+{
+	uchar name_dll[]={"InjectDll.dll"};
+	uchar name_fun[]={"ExportFunction"};
+	FILE* fp;
+	uchar* pFileBuffer=NULL;
+	uchar* pCurrent;
+	ushort NumberOfSection;
+	uint pe,size,PointerToRawData,VirtualAddress_im,VirtualAddress_im_new,descriptor_size;
+	section_add();
+	NumberOfSection=section_num();
+	PointerToRawData=ptrd(NumberOfSection-1);
+	VirtualAddress_im=import_add();
+	fp=file_open();
+	pe=find_PE();
+	fseek(fp,pe+24+108,0);
+	fread(&descriptor_size,4,1,fp);
+	fseek(fp,0,2);
+	size=ftell(fp);
+	pCurrent=pFileBuffer=(uchar*)malloc(size+0x1000);
+	if (pFileBuffer!=NULL)
+	{
+		fseek(fp,0,0);
+		fread(pFileBuffer,size,1,fp);
+		fseek(fp,RVA_FOA(VirtualAddress_im),0);
+		fread((uchar*)(pFileBuffer+PointerToRawData),descriptor_size-20,1,fp);
+		VirtualAddress_im_new=PointerToRawData;	//correct VirtualAddress_im
+		pCurrent=pFileBuffer+pe+24+104;
+		*(uint*)(pCurrent)=FOA_RVA(VirtualAddress_im_new);
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size-20;
+		*(uint*)(pCurrent+4)=0;	//TimeDateStamp
+		*(uint*)(pCurrent+8)=-1;	//ForwarderChain
+		*(uint*)(pCurrent)=FOA_RVA(PointerToRawData+descriptor_size+20);	//OriginalFirstThunk
+		*(uint*)(pCurrent+16)=FOA_RVA(PointerToRawData+descriptor_size+20);	//FirstThunk
+		*(uint*)(pCurrent+12)=FOA_RVA(PointerToRawData+descriptor_size+20+8+2+sizeof(name_fun));	//Name
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size;
+		for (int i=0;i<20;i++)
+		{
+			*pCurrent=0;
+			pCurrent++;
+		}
+		//************************INT
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size+20;
+		*(uint*)pCurrent=FOA_RVA(PointerToRawData+descriptor_size+20+8);	//Ordinal_AddressOfData
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size+20+4;
+		for (int j=0;j<4;j++)
+		{
+			*pCurrent=0;
+			pCurrent++;
+		}
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size+20+8;
+		for (int k=0;k<2;k++)	//Hint
+		{
+			*pCurrent=0;
+			pCurrent++;
+		}
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size+20+8+2;	//Name[1]
+		for (int m=0;m<sizeof(name_fun);m++)
+		{
+			*pCurrent=name_fun[m];
+			pCurrent++;
+		}
+		pCurrent=pFileBuffer+PointerToRawData+descriptor_size+20+8+2+sizeof(name_fun);	//Name
+		for (int n=0;n<sizeof(name_dll);n++)
+		{
+			*pCurrent=name_dll[n];
+			pCurrent++;
+		}
+	}else return 0;
+	file_out(pFileBuffer,size+0x1000);
+	free(pFileBuffer);
 	fclose(fp);
 	return 1;
 }
